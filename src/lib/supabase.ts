@@ -1,15 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? 'https://axvpouvgappjjghxuu0nh.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? 'sb_publishable_NFfDtNEz0330X4bndhv6mA_NL3HcHO9'
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn(
-    'Supabase environment variables tidak lengkap. Isi VITE_SUPABASE_URL dan VITE_SUPABASE_ANON_KEY di .env',
-  )
+  console.warn('Supabase environment variables tidak lengkap')
 }
 
-export const supabase = createClient(supabaseUrl ?? '', supabaseAnonKey ?? '')
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export type BookingStatus = 'booking' | 'selesai' | 'batal'
 
