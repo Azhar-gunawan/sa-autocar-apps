@@ -25,8 +25,11 @@ function App() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [splashFinished, setSplashFinished] = useState(false)
+  const [splashFinished, setSplashFinished] = useState(() => {
+    return localStorage.getItem('hasSeenSplash') === 'true'
+  })
   const handleSplashFinish = useCallback(() => {
+    localStorage.setItem('hasSeenSplash', 'true')
     setSplashFinished(true)
   }, [])
   const [isSubscribed, setIsSubscribed] = useState(false)
