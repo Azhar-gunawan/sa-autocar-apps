@@ -23,9 +23,12 @@ export function BookingForm({ defaultDate, carTypes, onCreateBooking, onClose, b
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showToast, setShowToast] = useState(false)
+  const [customCategoryName, setCustomCategoryName] = useState('')
+  const [customPrice, setCustomPrice] = useState('')
 
   const selectedType = carTypes.find((ct) => ct.id === selectedCarType)
-  const price = selectedType?.price ?? (booking?.price ?? 0)
+  const isCustom = selectedCarType === 'custom'
+  const price = isCustom ? (Number(customPrice.replace(/[^0-9]/g, '')) || 0) : (selectedType?.price ?? (booking?.price ?? 0))
 
   useEffect(() => {
     if (!isEdit) {
@@ -216,11 +219,40 @@ export function BookingForm({ defaultDate, carTypes, onCreateBooking, onClose, b
                     {ct.name} - {formatRupiah(ct.price)}
                   </option>
                 ))}
+                <option value="custom">Lainnya (Input Sendiri)</option>
               </select>
               {selectedType && (
                 <p className="mt-1 text-[10px] text-text-muted">
                   Harga: {formatRupiah(selectedType.price)}
                 </p>
+              )}
+              {isCustom && (
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                      Nama Kategori
+                    </label>
+                    <input
+                      type="text"
+                      value={customCategoryName}
+                      onChange={(e) => setCustomCategoryName(e.target.value)}
+                      placeholder="Contoh: Cuci Reguler"
+                      className="w-full px-3 py-2.5 rounded-xl border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                      Harga (RP)
+                    </label>
+                    <input
+                      type="text"
+                      value={customPrice}
+                      onChange={(e) => setCustomPrice(e.target.value)}
+                      placeholder="Contoh: 50000"
+                      className="w-full px-3 py-2.5 rounded-xl border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+                    />
+                  </div>
+                </div>
               )}
             </div>
 
