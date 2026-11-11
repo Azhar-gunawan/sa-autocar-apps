@@ -40,8 +40,24 @@ function App() {
     }
   }, [])
 
+  const refreshData = async () => {
+    try {
+      const [carTypesRes, bookingsRes] = await Promise.all([
+        supabase.from('car_types').select('*').eq('active', true).order('name'),
+        supabase.from('bookings').select('*').order('booking_date', { ascending: true }),
+      ])
+      if (carTypesRes.error) throw carTypesRes.error
+      if (bookingsRes.error) throw bookingsRes.error
+      setCarTypes(carTypesRes.data ?? [])
+      setBookings(bookingsRes.data ?? [])
+    } catch (err) {
+      console.error('Gagal merefresh data:', err)
+    }
+  }
+
   const handleCreateBooking = (booking: Booking) => {
     setBookings((prev) => [...prev, booking])
+    refreshData()
   }
 
   const handleUpdateBooking = async (id: string, patch: Partial<Booking>) => {
@@ -53,6 +69,8 @@ function App() {
       }
     } catch (err) {
       console.error('Gagal mengupdate booking:', err)
+    } finally {
+      refreshData()
     }
   }
 
@@ -63,6 +81,8 @@ function App() {
       setBookings((prev) => prev.filter((b) => b.id !== id))
     } catch (err) {
       console.error('Gagal menghapus booking:', err)
+    } finally {
+      refreshData()
     }
   }
 
