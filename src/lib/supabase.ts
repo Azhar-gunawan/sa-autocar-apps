@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? 'https://axvpouvgappjjghxuu0nh.supabase.co'
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? 'sb_publishable_NFfDtNEz0330X4bndhv6mA_NL3HcHO9'
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? 'https://qnqxektgmvfgrsvmnwgu.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? 'sb_publishable_X6Ah39DuWiZ_e1PYTOOApg_6Z7PBlVA'
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase environment variables tidak lengkap')
