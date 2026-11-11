@@ -20,7 +20,7 @@ export function DayCell({ date, bookingsCount, hasBooking, isSelected, onSelect 
         isSelected
           ? 'bg-primary-50 border-primary text-primary font-bold shadow-sm'
           : today
-            ? 'bg-primary-100 border-primary text-primary-700 font-bold shadow-sm'
+            ? 'bg-primary text-white font-bold shadow-sm'
             : hasBooking
               ? 'bg-success/10 border-success/20 text-success-700'
               : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200'
@@ -28,7 +28,7 @@ export function DayCell({ date, bookingsCount, hasBooking, isSelected, onSelect 
       aria-label={format(date, 'dd MMMM yyyy')}
     >
       <span className="text-sm font-medium leading-none">{dayNumber}</span>
-      {hasBooking && !isSelected && !today && (
+      {hasBooking && !isSelected && (
         <div className="mt-1 flex items-center gap-1 text-[10px]">
           <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-success text-white text-[10px] font-bold">
             {bookingsCount}
@@ -36,7 +36,7 @@ export function DayCell({ date, bookingsCount, hasBooking, isSelected, onSelect 
         </div>
       )}
       {today && !isSelected && !hasBooking && (
-        <span className="mt-1 w-1.5 h-1.5 rounded-full bg-primary" />
+        <span className="mt-1 w-1.5 h-1.5 rounded-full bg-success" />
       )}
     </button>
   )
