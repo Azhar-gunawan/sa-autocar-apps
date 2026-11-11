@@ -19,6 +19,7 @@ export function BookingForm({ defaultDate, carTypes, onCreateBooking, onClose, b
   const [plateNumber, setPlateNumber] = useState(booking?.plate_number ?? '')
   const [bookingTime, setBookingTime] = useState(booking?.booking_time ?? '')
   const [selectedCarType, setSelectedCarType] = useState<string | null>(booking?.car_type_id ?? null)
+  const [customMode, setCustomMode] = useState(!!booking && booking.car_type_id === null)
   const [notes, setNotes] = useState(booking?.notes ?? '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -36,7 +37,7 @@ export function BookingForm({ defaultDate, carTypes, onCreateBooking, onClose, b
   }
 
   const selectedType = carTypes.find((ct) => ct.id === selectedCarType)
-  const isCustom = selectedCarType === 'custom'
+  const isCustom = customMode
   const price = isCustom ? (Number(customPrice.replace(/[^0-9]/g, '')) || 0) : (selectedType?.price ?? (booking?.price ?? 0))
 
   useEffect(() => {
@@ -47,6 +48,16 @@ export function BookingForm({ defaultDate, carTypes, onCreateBooking, onClose, b
       setBookingTime(`${hh}:${mm}`)
     }
   }, [isEdit])
+
+  const handleCategoryChange = (value: string) => {
+    if (value === 'custom') {
+      setCustomMode(true)
+      setSelectedCarType(null)
+    } else {
+      setCustomMode(false)
+      setSelectedCarType(value || null)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -219,7 +230,7 @@ export function BookingForm({ defaultDate, carTypes, onCreateBooking, onClose, b
               </label>
               <select
                 value={selectedCarType ?? ''}
-                onChange={(e) => setSelectedCarType(e.target.value || null)}
+                onChange={(e) => handleCategoryChange(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary transition-all appearance-none"
               >
                 <option value="">Pilih kategori</option>
