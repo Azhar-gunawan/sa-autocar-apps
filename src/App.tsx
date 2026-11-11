@@ -29,6 +29,7 @@ function App() {
   const handleSplashFinish = useCallback(() => {
     setSplashFinished(true)
   }, [])
+  const [isSubscribed, setIsSubscribed] = useState(false)
   const [pushDialogOpen, setPushDialogOpen] = useState(false)
 
   useEffect(() => {
@@ -47,6 +48,9 @@ function App() {
 
         setCarTypes(carTypesRes.data ?? [])
         setBookings(bookingsRes.data ?? [])
+
+        const { data: subs } = await supabase.from('push_subscriptions').select('id').limit(1)
+        if (subs && subs.length > 0) setIsSubscribed(true)
       } catch (err) {
         console.error('Gagal memuat data:', err)
       } finally {
@@ -183,13 +187,16 @@ function App() {
       <PushPermissionDialog
         open={pushDialogOpen}
         onClose={() => setPushDialogOpen(false)}
-        onSubscribe={() => setPushDialogOpen(false)}
+        onSubscribe={() => {
+          setPushDialogOpen(false)
+          setIsSubscribed(true)
+        }}
       />
 
       <button
         type="button"
         onClick={() => setPushDialogOpen(true)}
-        className="fixed bottom-5 right-5 z-40 p-3 rounded-full bg-primary text-white shadow-lg hover:bg-primary-600 transition-colors"
+        className={`fixed bottom-5 right-5 z-40 p-3 rounded-full ${isSubscribed ? 'bg-success text-white' : 'bg-primary text-white'} shadow-lg hover:${isSubscribed ? 'bg-success-600' : 'bg-primary-600'} transition-colors`}
         title="Pengaturan Notifikasi"
       >
         <Bell className="w-5 h-5" />
