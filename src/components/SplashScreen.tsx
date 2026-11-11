@@ -30,12 +30,6 @@ export function SplashScreen({ onFinish }: { onFinish: () => void }) {
         />
         <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-primary animate-ping" />
       </div>
-      <div className="mt-6 text-2xl font-bold text-text tracking-tight">
-        SA AUTOCAR
-      </div>
-      <div className="mt-1 text-sm text-text-muted uppercase tracking-widest">
-        Wash and Engine
-      </div>
     </div>
   )
 }
