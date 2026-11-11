@@ -9,11 +9,22 @@ const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sen
 
 async function sendPushNotification(title: string, body: string, tag: string, data?: any) {
   try {
-    await fetch(EDGE_FUNCTION_URL, {
+    const { data: { session } } = await supabase.auth.getSession()
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`
+    }
+    const res = await fetch(EDGE_FUNCTION_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ title, body, tag, data }),
     })
+    const result = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      console.error('Edge function error:', result)
+    } else {
+      console.log('Push response:', result)
+    }
   } catch (err) {
     console.error('Gagal mengirim notifikasi push:', err)
   }

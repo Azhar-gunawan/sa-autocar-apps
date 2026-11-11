@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.119.0'
 
@@ -15,7 +16,6 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 
 async function sendPushSubscription(subscription: any, payload: any): Promise<void> {
   const applicationServerKey = urlBase64ToUint8Array(VAPID_PRIVATE_KEY)
-  const encoder = new TextEncoder()
 
   const headers = new Headers()
   headers.set('TTL', '86400')
@@ -29,7 +29,6 @@ async function sendPushSubscription(subscription: any, payload: any): Promise<vo
     subject: 'mailto:admin@sa-autocar.example',
   }
 
-  const encoderText = new TextEncoder()
   const keyData = await crypto.subtle.importKey(
     'pkcs8',
     applicationServerKey,
@@ -43,17 +42,19 @@ async function sendPushSubscription(subscription: any, payload: any): Promise<vo
   headers.set('Crypto-Key', `p256ecdsa=${VAPID_PUBLIC_KEY}`)
 
   const body = JSON.stringify(payload)
-  headers.set('Content-Encoding', 'aes128gcm')
-  headers.set('Encryption', `salt=${crypto.randomUUID()}`)
 
   try {
-    await fetch(subscription.endpoint, {
+    const res = await fetch(subscription.endpoint, {
       method: 'POST',
       headers,
       body,
     })
+    if (!res.ok) {
+      throw new Error(`Push service responded ${res.status}`)
+    }
   } catch (err) {
     console.error('Push send error:', err)
+    throw err
   }
 }
 
@@ -89,7 +90,7 @@ serve(async (req) => {
   }
 
   try {
-    const { title, body, tag, data, type } = await req.json()
+    const { title, body, tag, data } = await req.json()
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       return new Response(JSON.stringify({ error: 'Missing Supabase config' }), { status: 500, headers: corsHeaders })
@@ -111,7 +112,7 @@ serve(async (req) => {
     }
 
     const results = await Promise.allSettled(
-      (subs ?? []).map((sub: any) => {
+      (subs ?? []).map(async (sub: any) => {
         const subscription: any = {
           endpoint: sub.endpoint,
           getKey: (name: string) => {
@@ -121,14 +122,25 @@ serve(async (req) => {
             return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)))
           },
         }
-        return sendPushSubscription(subscription, notificationPayload)
+        try {
+          await sendPushSubscription(subscription, notificationPayload)
+          return { endpoint: sub.endpoint, status: 'sent' }
+        } catch (err: any) {
+          return { endpoint: sub.endpoint, status: 'failed', error: err.message }
+        }
       })
     )
 
-    const successCount = results.filter((r) => r.status === 'fulfilled').length
+    const successCount = results.filter((r) => r.status === 'fulfilled' && r.value.status === 'sent').length
+    const failCount = results.filter((r) => r.status === 'rejected' || r.value.status === 'failed').length
+
+    console.log(
+      `Push sent: ${successCount}/${subs?.length ?? 0}, failed: ${failCount}, VAPID set: ${!!VAPID_PRIVATE_KEY && !!VAPID_PUBLIC_KEY}`
+    )
+    console.log('Per-subscription results:', JSON.stringify(results))
 
     return new Response(
-      JSON.stringify({ success: true, sent: successCount, total: (subs ?? []).length }),
+      JSON.stringify({ success: true, sent: successCount, failed: failCount, total: (subs ?? []).length, results }),
       { status: 200, headers: corsHeaders }
     )
   } catch (err: any) {
