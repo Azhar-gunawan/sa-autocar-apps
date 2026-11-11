@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { CalendarView } from './components/CalendarView'
 import { DayDetail } from './components/DayDetail'
 import { SplashScreen } from './components/SplashScreen'
@@ -26,6 +26,9 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [splashFinished, setSplashFinished] = useState(false)
+  const handleSplashFinish = useCallback(() => {
+    setSplashFinished(true)
+  }, [])
   const [pushDialogOpen, setPushDialogOpen] = useState(false)
 
   useEffect(() => {
@@ -124,7 +127,7 @@ function App() {
   if (!splashFinished) {
     return (
       <div className="flex-1 flex flex-col">
-        <SplashScreen onFinish={() => setSplashFinished(true)} />
+        <SplashScreen onFinish={handleSplashFinish} />
       </div>
     )
   }
