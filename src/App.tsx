@@ -2,7 +2,23 @@ import { useState, useEffect } from 'react'
 import { CalendarView } from './components/CalendarView'
 import { DayDetail } from './components/DayDetail'
 import { SplashScreen } from './components/SplashScreen'
+import { PushPermissionDialog } from './components/PushPermissionDialog'
+import { Bell } from 'lucide-react'
 import { supabase, type CarType, type Booking } from './lib/supabase'
+
+const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-push`
+
+async function sendPushNotification(title: string, body: string, tag: string, data?: any) {
+  try {
+    await fetch(EDGE_FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, body, tag, data }),
+    })
+  } catch (err) {
+    console.error('Gagal mengirim notifikasi push:', err)
+  }
+}
 
 function App() {
   const [carTypes, setCarTypes] = useState<CarType[]>([])
@@ -10,6 +26,7 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [splashFinished, setSplashFinished] = useState(false)
+  const [pushDialogOpen, setPushDialogOpen] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -58,6 +75,12 @@ function App() {
   const handleCreateBooking = (booking: Booking) => {
     setBookings((prev) => [...prev, booking])
     refreshData()
+    sendPushNotification(
+      'Booking Baru',
+      `Booking ${booking.car_name} untuk ${booking.customer_name} pada ${booking.booking_date}`,
+      'booking-create',
+      { type: 'create', bookingId: booking.id }
+    )
   }
 
   const handleUpdateBooking = async (id: string, patch: Partial<Booking>) => {
@@ -71,6 +94,12 @@ function App() {
       console.error('Gagal mengupdate booking:', err)
     } finally {
       refreshData()
+      sendPushNotification(
+        'Booking Diupdate',
+        'Status booking Anda telah diperbarui.',
+        'booking-update',
+        { type: 'update', bookingId: id }
+      )
     }
   }
 
@@ -83,6 +112,12 @@ function App() {
       console.error('Gagal menghapus booking:', err)
     } finally {
       refreshData()
+      sendPushNotification(
+        'Booking Dihapus',
+        'Sebuah booking telah dihapus.',
+        'booking-delete',
+        { type: 'delete', bookingId: id }
+      )
     }
   }
 
@@ -141,6 +176,21 @@ function App() {
           </main>
         </div>
       </div>
+
+      <PushPermissionDialog
+        open={pushDialogOpen}
+        onClose={() => setPushDialogOpen(false)}
+        onSubscribe={() => setPushDialogOpen(false)}
+      />
+
+      <button
+        type="button"
+        onClick={() => setPushDialogOpen(true)}
+        className="fixed bottom-5 right-5 z-40 p-3 rounded-full bg-primary text-white shadow-lg hover:bg-primary-600 transition-colors"
+        title="Pengaturan Notifikasi"
+      >
+        <Bell className="w-5 h-5" />
+      </button>
     </div>
   )
 }

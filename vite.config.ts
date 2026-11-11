@@ -12,7 +12,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
-      includeAssets: ['favicon.svg', 'apple-touch-icon.svg', 'mask-icon.svg'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.svg', 'mask-icon.svg', 'sw-push.js'],
       manifest: {
         name: 'SA AUTOCAR - Booking Cuci Mobil',
         short_name: 'SA AUTOCAR',
