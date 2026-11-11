@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { CalendarView } from './components/CalendarView'
 import { DayDetail } from './components/DayDetail'
-import { SplashScreen } from './components/SplashScreen'
 import { PushPermissionDialog } from './components/PushPermissionDialog'
 import { Bell } from 'lucide-react'
 import { supabase, type CarType, type Booking } from './lib/supabase'
@@ -25,13 +24,6 @@ function App() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [splashFinished, setSplashFinished] = useState(() => {
-    return localStorage.getItem('hasSeenSplash') === 'true'
-  })
-  const handleSplashFinish = useCallback(() => {
-    localStorage.setItem('hasSeenSplash', 'true')
-    setSplashFinished(true)
-  }, [])
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [pushDialogOpen, setPushDialogOpen] = useState(false)
 
@@ -129,14 +121,6 @@ function App() {
         { type: 'delete', bookingId: id }
       )
     }
-  }
-
-  if (!splashFinished) {
-    return (
-      <div className="flex-1 flex flex-col">
-        <SplashScreen onFinish={handleSplashFinish} />
-      </div>
-    )
   }
 
   if (loading) {
