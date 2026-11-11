@@ -209,7 +209,11 @@ export function DayDetail({
 
       {isFormOpen && (
         <BookingForm
-          defaultDate={selectedDate.toISOString().split('T')[0]}
+          defaultDate={[
+            selectedDate.getFullYear(),
+            String(selectedDate.getMonth() + 1).padStart(2, '0'),
+            String(selectedDate.getDate()).padStart(2, '0'),
+          ].join('-')}
           carTypes={carTypes}
           booking={editingBooking ?? undefined}
           onCreateBooking={(booking) => onCreateBooking(booking)}
