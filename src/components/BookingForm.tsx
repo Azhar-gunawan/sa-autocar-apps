@@ -262,7 +262,7 @@ export function BookingForm({ defaultDate, carTypes, onCreateBooking, onClose, b
         </form>
 
         {showToast && (
-          <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-primary-900 text-white shadow-2xl border border-primary/30">
+          <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-primary text-white shadow-2xl border border-primary/20">
             <Edit2 className="w-5 h-5 text-success" />
             <span className="text-sm font-medium">{isEdit ? 'Booking berhasil diupdate' : 'Booking berhasil ditambahkan'}</span>
           </div>
