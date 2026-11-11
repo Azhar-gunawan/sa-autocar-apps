@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/sw-push.js", "destination": "/sw-push.js" },
     { "source": "/(.*)", "destination": "/" }
   ]
 }
