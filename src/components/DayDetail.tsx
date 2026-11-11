@@ -45,7 +45,7 @@ function BookingItem({ booking, onStatusChange, onEdit, onDelete }: BookingItemP
           <div className="mt-1 text-xs text-text-muted truncate max-w-[200px]">{booking.notes}</div>
         )}
         <div className="mt-1 text-xs text-text-muted">
-          {booking.car_type_id ? booking.price ? formatRupiah(booking.price) : '-' : '-'}
+          {booking.price ? formatRupiah(booking.price) : '-'}
         </div>
       </div>
 
