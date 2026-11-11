@@ -137,9 +137,7 @@ function App() {
       <header className="border-b border-border bg-white/80 backdrop-blur-md sticky top-0 z-20">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-2xl bg-primary flex items-center justify-center text-white font-bold text-sm shadow-lg">
-              S
-            </div>
+            <img src="/logo.png" alt="SA AUTOCAR" className="w-9 h-9 rounded-2xl object-contain" />
             <span className="font-bold text-text text-lg tracking-tight">SA AUTOCAR</span>
           </div>
           <div className="text-xs text-text-muted font-medium">
