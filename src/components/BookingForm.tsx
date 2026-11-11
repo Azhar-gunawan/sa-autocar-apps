@@ -23,8 +23,17 @@ export function BookingForm({ defaultDate, carTypes, onCreateBooking, onClose, b
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showToast, setShowToast] = useState(false)
-  const [customCategoryName, setCustomCategoryName] = useState('')
   const [customPrice, setCustomPrice] = useState('')
+
+  const formatPrice = (value: string) => {
+    const digits = value.replace(/\D/g, '')
+    if (!digits) return ''
+    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  }
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCustomPrice(formatPrice(e.target.value))
+  }
 
   const selectedType = carTypes.find((ct) => ct.id === selectedCarType)
   const isCustom = selectedCarType === 'custom'
@@ -230,24 +239,12 @@ export function BookingForm({ defaultDate, carTypes, onCreateBooking, onClose, b
                 <div className="mt-3 space-y-3">
                   <div>
                     <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
-                      Nama Kategori
-                    </label>
-                    <input
-                      type="text"
-                      value={customCategoryName}
-                      onChange={(e) => setCustomCategoryName(e.target.value)}
-                      placeholder="Contoh: Cuci Reguler"
-                      className="w-full px-3 py-2.5 rounded-xl border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
                       Harga (RP)
                     </label>
                     <input
                       type="text"
                       value={customPrice}
-                      onChange={(e) => setCustomPrice(e.target.value)}
+                      onChange={handlePriceChange}
                       placeholder="Contoh: 50000"
                       className="w-full px-3 py-2.5 rounded-xl border border-border text-text focus:outline-none focus:ring-2 focus:ring-primary transition-all"
                     />
