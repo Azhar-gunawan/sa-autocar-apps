@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { CalendarView } from './components/CalendarView'
 import { DayDetail } from './components/DayDetail'
 import { PushPermissionDialog } from './components/PushPermissionDialog'
+import { NotificationToast } from './components/NotificationToast'
 import { Bell } from 'lucide-react'
 import { supabase, type CarType, type Booking } from './lib/supabase'
 
@@ -37,6 +38,22 @@ function App() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [pushDialogOpen, setPushDialogOpen] = useState(false)
+  const [notifications, setNotifications] = useState<{
+    id: string
+    title: string
+    body: string
+    type: 'create' | 'update' | 'delete'
+    createdAt: string
+  }[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  function addNotification(title: string, body: string, type: 'create' | 'update' | 'delete') {
+    const id = crypto.randomUUID()
+    const notification = { id, title, body, type, createdAt: new Date().toISOString() }
+    setNotifications((prev) => [notification, ...prev].slice(0, 50))
+    setUnreadCount((prev) => prev + 1)
+    sendPushNotification(title, body, type)
+  }
 
   useEffect(() => {
     let mounted = true
@@ -70,6 +87,46 @@ function App() {
     }
   }, [])
 
+  useEffect(() => {
+    const channel = supabase
+      .channel('bookings-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings',
+        },
+        (payload) => {
+          const { eventType, new: record, old: recordOld } = payload as any
+          if (eventType === 'INSERT' && record) {
+            addNotification(
+              'Booking Baru',
+              `Booking ${record.car_name} untuk ${record.customer_name} pada ${record.booking_date}`,
+              'create'
+            )
+          } else if (eventType === 'UPDATE' && record) {
+            addNotification(
+              'Booking Diupdate',
+              `Status booking ${record.car_name} telah diperbarui.`,
+              'update'
+            )
+          } else if (eventType === 'DELETE' && recordOld) {
+            addNotification(
+              'Booking Dihapus',
+              'Sebuah booking telah dihapus.',
+              'delete'
+            )
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
   const refreshData = async () => {
     try {
       const [carTypesRes, bookingsRes] = await Promise.all([
@@ -88,11 +145,10 @@ function App() {
   const handleCreateBooking = (booking: Booking) => {
     setBookings((prev) => [...prev, booking])
     refreshData()
-    sendPushNotification(
+    addNotification(
       'Booking Baru',
       `Booking ${booking.car_name} untuk ${booking.customer_name} pada ${booking.booking_date}`,
-      'booking-create',
-      { type: 'create', bookingId: booking.id }
+      'create'
     )
   }
 
@@ -107,11 +163,10 @@ function App() {
       console.error('Gagal mengupdate booking:', err)
     } finally {
       refreshData()
-      sendPushNotification(
+      addNotification(
         'Booking Diupdate',
         'Status booking Anda telah diperbarui.',
-        'booking-update',
-        { type: 'update', bookingId: id }
+        'update'
       )
     }
   }
@@ -125,11 +180,10 @@ function App() {
       console.error('Gagal menghapus booking:', err)
     } finally {
       refreshData()
-      sendPushNotification(
+      addNotification(
         'Booking Dihapus',
         'Sebuah booking telah dihapus.',
-        'booking-delete',
-        { type: 'delete', bookingId: id }
+        'delete'
       )
     }
   }
@@ -192,11 +246,27 @@ function App() {
       <button
         type="button"
         onClick={() => setPushDialogOpen(true)}
-        className={`fixed bottom-5 right-5 z-40 p-3 rounded-full ${isSubscribed ? 'bg-success text-white' : 'bg-primary text-white'} shadow-lg hover:${isSubscribed ? 'bg-success-600' : 'bg-primary-600'} transition-colors`}
+        className={`fixed bottom-5 right-5 z-50 p-3 rounded-full ${isSubscribed ? 'bg-success text-white' : 'bg-primary text-white'} shadow-lg hover:${isSubscribed ? 'bg-success-600' : 'bg-primary-600'} transition-colors relative`}
         title="Pengaturan Notifikasi"
       >
         <Bell className="w-5 h-5" />
+        {unreadCount > 0 && (
+          <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-danger text-white text-xs font-bold flex items-center justify-center border-2 border-white">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
       </button>
+
+      {notifications.map((n) => (
+        <NotificationToast
+          key={n.id}
+          notification={n}
+          onDismiss={() => {
+            setNotifications((prev) => prev.filter((t) => t.id !== n.id))
+            setUnreadCount((prev) => Math.max(0, prev - 1))
+          }}
+        />
+      ))}
     </div>
   )
 }

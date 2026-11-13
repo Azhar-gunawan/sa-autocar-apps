@@ -86,3 +86,11 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
+
+@keyframes toast-slide {
+  from { transform: translateY(100px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.toast-enter {
+  animation: toast-slide 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
