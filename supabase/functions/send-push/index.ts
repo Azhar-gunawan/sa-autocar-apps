@@ -14,12 +14,135 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)))
 }
 
+function extractRawPublicKey(b64url: string): Uint8Array {
+  const bytes = urlBase64ToUint8Array(b64url)
+  if (bytes.length === 65 && bytes[0] === 0x04) return bytes
+  for (let i = 0; i < bytes.length - 3; i++) {
+    if (bytes[i] === 0x03 && bytes[i + 2] === 0x00) {
+      const start = i + 3
+      if (bytes[start] === 0x04 && start + 65 <= bytes.length) {
+        return bytes.slice(start, start + 65)
+      }
+    }
+  }
+  throw new Error('Invalid VAPID public key: expected raw 65-byte key or SPKI DER')
+}
+
+function uint8ArrayToBase64Url(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
+}
+
+async function encryptPayload(plaintext: string, subscription: any, vapidPrivateKeyRaw: Uint8Array): Promise<{ encrypted: Uint8Array; salt: Uint8Array }> {
+  const encoder = new TextEncoder()
+  const ptBytes = encoder.encode(plaintext)
+
+  const authRaw = subscription.getKey('auth')
+  const p256dhRaw = subscription.getKey('p256dh')
+  if (!authRaw || !p256dhRaw) throw new Error('Missing subscription keys')
+
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+
+  const ecdhPrivateKey = await crypto.subtle.importKey(
+    'pkcs8',
+    vapidPrivateKeyRaw,
+    { name: 'ECDH', namedCurve: 'P-256' },
+    true,
+    ['deriveBits']
+  )
+
+  const p256dhPublicKey = await crypto.subtle.importKey(
+    'raw',
+    p256dhRaw,
+    { name: 'ECDH', namedCurve: 'P-256' },
+    true,
+    []
+  )
+
+  const sharedSecret = new Uint8Array(
+    await crypto.subtle.deriveBits(
+      { name: 'ECDH', public: p256dhPublicKey },
+      ecdhPrivateKey,
+      256
+    )
+  )
+
+  const sharedSecretKey = await crypto.subtle.importKey(
+    'raw',
+    sharedSecret,
+    { name: 'HKDF', hash: 'SHA-256' },
+    false,
+    ['deriveBits']
+  )
+
+  const prk = new Uint8Array(
+    await crypto.subtle.deriveBits(
+      { name: 'HKDF', hash: 'SHA-256', salt: authRaw, info: new Uint8Array(0) },
+      sharedSecretKey,
+      256
+    )
+  )
+
+  const prkKey = await crypto.subtle.importKey(
+    'raw',
+    prk,
+    { name: 'HKDF', hash: 'SHA-256' },
+    false,
+    ['deriveBits']
+  )
+
+  const keyLen = new Uint8Array([0x00, 0x10])
+  const cekInfo = new Uint8Array([
+    ...encoder.encode('Content-Encoding: aesgcm\0'),
+    ...keyLen,
+  ])
+  const cek = new Uint8Array(
+    await crypto.subtle.deriveBits(
+      { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0), info: cekInfo },
+      prkKey,
+      128
+    )
+  )
+
+  const nonceLen = new Uint8Array([0x00, 0x0c])
+  const nonceInfo = new Uint8Array([
+    ...encoder.encode('Content-Encoding: nonce\0'),
+    ...nonceLen,
+  ])
+  const nonce = new Uint8Array(
+    await crypto.subtle.deriveBits(
+      { name: 'HKDF', hash: 'SHA-256', salt: new Uint8Array(0), info: nonceInfo },
+      prkKey,
+      96
+    )
+  )
+
+  const cekKey = await crypto.subtle.importKey('raw', cek, { name: 'AES-GCM' }, false, ['encrypt'])
+  const encrypted = new Uint8Array(
+    await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce }, cekKey, ptBytes)
+  )
+
+  return { encrypted, salt }
+}
+
 async function sendPushSubscription(subscription: any, payload: any): Promise<void> {
-  const applicationServerKey = urlBase64ToUint8Array(VAPID_PRIVATE_KEY)
+  if (!VAPID_PRIVATE_KEY) throw new Error('VAPID_PRIVATE_KEY not configured')
+  if (!VAPID_PUBLIC_KEY) throw new Error('VAPID_PUBLIC_KEY not configured')
+
+  const vapidPrivateKeyRaw = urlBase64ToUint8Array(VAPID_PRIVATE_KEY)
+
+  const ecdsaKey = await crypto.subtle.importKey(
+    'pkcs8',
+    vapidPrivateKeyRaw,
+    { name: 'ECDSA', namedCurve: 'P-256' },
+    true,
+    ['sign']
+  )
 
   const headers = new Headers()
   headers.set('TTL', '86400')
-  headers.set('Content-Type', 'application/json')
 
   const url = new URL(subscription.endpoint)
 
@@ -29,32 +152,22 @@ async function sendPushSubscription(subscription: any, payload: any): Promise<vo
     subject: 'mailto:admin@sa-autocar.example',
   }
 
-  const keyData = await crypto.subtle.importKey(
-    'pkcs8',
-    applicationServerKey,
-    { name: 'ECDSA', namedCurve: 'P-256' },
-    true,
-    ['sign']
-  )
-
-  const jwt = await generateJWT(authData, keyData)
+  const jwt = await generateJWT(authData, ecdsaKey)
   headers.set('Authorization', `WebPush ${jwt}`)
-  headers.set('Crypto-Key', `p256ecdsa=${VAPID_PUBLIC_KEY}`)
 
-  const body = JSON.stringify(payload)
+  const rawPublicKey = extractRawPublicKey(VAPID_PUBLIC_KEY)
+  const encrypted = await encryptPayload(JSON.stringify(payload), subscription, vapidPrivateKeyRaw)
 
-  try {
-    const res = await fetch(subscription.endpoint, {
-      method: 'POST',
-      headers,
-      body,
-    })
-    if (!res.ok) {
-      throw new Error(`Push service responded ${res.status}`)
-    }
-  } catch (err) {
-    console.error('Push send error:', err)
-    throw err
+  headers.set('Encryption', `salt=${uint8ArrayToBase64Url(encrypted.salt)}`)
+  headers.set('Crypto-Key', `p256ecdsa=${uint8ArrayToBase64Url(rawPublicKey)}`)
+
+  const res = await fetch(subscription.endpoint, {
+    method: 'POST',
+    headers,
+    body: encrypted.encrypted,
+  })
+  if (!res.ok) {
+    throw new Error(`Push service responded ${res.status}`)
   }
 }
 
@@ -96,6 +209,10 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Missing Supabase config' }), { status: 500, headers: corsHeaders })
     }
 
+    if (!VAPID_PRIVATE_KEY || !VAPID_PUBLIC_KEY) {
+      return new Response(JSON.stringify({ error: 'Missing VAPID config' }), { status: 500, headers: corsHeaders })
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
     const { data: subs, error: subError } = await supabase
@@ -135,7 +252,7 @@ serve(async (req) => {
     const failCount = results.filter((r) => r.status === 'rejected' || r.value.status === 'failed').length
 
     console.log(
-      `Push sent: ${successCount}/${subs?.length ?? 0}, failed: ${failCount}, VAPID set: ${!!VAPID_PRIVATE_KEY && !!VAPID_PUBLIC_KEY}`
+      `Push sent: ${successCount}/${subs?.length ?? 0}, failed: ${failCount}`
     )
     console.log('Per-subscription results:', JSON.stringify(results))
 
