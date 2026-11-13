@@ -13,6 +13,20 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)))
 }
 
+function extractRawPublicKey(b64url: string): Uint8Array {
+  const bytes = urlBase64ToUint8Array(b64url)
+  if (bytes.length === 65 && bytes[0] === 0x04) return bytes
+  for (let i = 0; i < bytes.length - 3; i++) {
+    if (bytes[i] === 0x03 && bytes[i + 2] === 0x00) {
+      const start = i + 3
+      if (bytes[start] === 0x04 && start + 65 <= bytes.length) {
+        return bytes.slice(start, start + 65)
+      }
+    }
+  }
+  throw new Error('Invalid VAPID public key: expected raw 65-byte key or SPKI DER')
+}
+
 export async function subscribeToPush(): Promise<PushSubscription | null> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.warn('Browser tidak mendukung push notifikasi')
@@ -26,7 +40,7 @@ export async function subscribeToPush(): Promise<PushSubscription | null> {
 
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
+      applicationServerKey: extractRawPublicKey(VAPID_PUBLIC_KEY) as BufferSource,
     })
     return subscription
   } catch (err) {
