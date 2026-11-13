@@ -27,7 +27,7 @@ export function NotificationToast({ notification, onDismiss }: NotificationToast
   const Icon = config.icon
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
       <div className="pointer-events-auto flex items-start gap-3 p-4 rounded-xl shadow-lg border border-border bg-white toast-enter min-w-[260px]">
         <div className={`${config.color} w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5`}>
           <Icon className="w-5 h-5 text-white" />

@@ -246,7 +246,7 @@ function App() {
       <button
         type="button"
         onClick={() => setPushDialogOpen(true)}
-        className={`fixed bottom-5 right-5 z-50 p-3 rounded-full ${isSubscribed ? 'bg-success text-white' : 'bg-primary text-white'} shadow-lg hover:${isSubscribed ? 'bg-success-600' : 'bg-primary-600'} transition-colors relative`}
+        className={`fixed top-4 right-4 z-50 p-3 rounded-full ${isSubscribed ? 'bg-success text-white' : 'bg-primary text-white'} shadow-lg hover:${isSubscribed ? 'bg-success-600' : 'bg-primary-600'} transition-colors relative`}
         title="Pengaturan Notifikasi"
       >
         <Bell className="w-5 h-5" />
