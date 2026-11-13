@@ -246,12 +246,12 @@ function App() {
       <button
         type="button"
         onClick={() => setPushDialogOpen(true)}
-        className={`fixed top-4 right-4 z-50 p-3 rounded-full ${isSubscribed ? 'bg-success text-white' : 'bg-primary text-white'} shadow-lg hover:${isSubscribed ? 'bg-success-600' : 'bg-primary-600'} transition-colors relative`}
+        className={`fixed bottom-4 left-4 z-50 p-1 text-primary ${isSubscribed ? 'text-success' : ''}`}
         title="Pengaturan Notifikasi"
       >
-        <Bell className="w-5 h-5" />
+        <Bell className="w-6 h-6" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-danger text-white text-xs font-bold flex items-center justify-center border-2 border-white">
+          <span className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-danger text-white text-xs font-bold flex items-center justify-center border-2 border-white">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
